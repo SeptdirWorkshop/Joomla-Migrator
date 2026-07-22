@@ -1,1 +1,1 @@
-# Joomla-Mirgrator
+# Joomla-Migrator
