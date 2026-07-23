@@ -95,7 +95,7 @@ class ExportJoomlaCommand extends AbstractCommand
 				'parent'      => $parent,
 				'description' => $item->description,
 				'published'   => $item->published,
-				'access'      => 'access',
+				'access'      => $item->access,
 				'params'      => (new Registry($item->params))->toArray(),
 				'metadesc'    => $item->metadesc,
 				'metadata'    => (new Registry($item->metadata))->toArray(),
@@ -225,6 +225,7 @@ class ExportJoomlaCommand extends AbstractCommand
 		$query = $db->createQuery()
 			->select('*')
 			->from($db->quoteName('#__tags'))
+			->where($db->quoteName('id') . ' > 1')
 			->order('lft asc');
 		$items = $db->setQuery($query)->loadObjectList('id');
 		$this->progressbarFinish();
@@ -249,7 +250,7 @@ class ExportJoomlaCommand extends AbstractCommand
 				'parent'      => $parent,
 				'description' => $item->description,
 				'published'   => $item->published,
-				'access'      => 'access',
+				'access'      => $item->access,
 				'params'      => (new Registry($item->params))->toArray(),
 				'metadesc'    => $item->metadesc,
 				'metadata'    => (new Registry($item->metadata))->toArray(),

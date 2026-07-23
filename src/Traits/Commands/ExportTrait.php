@@ -19,6 +19,7 @@ use Joomla\Filesystem\File;
 use Joomla\Filesystem\Folder;
 use Joomla\Filesystem\Path;
 use Joomla\Registry\Registry;
+
 trait ExportTrait
 {
 	use UtilitiesTrait;
@@ -73,6 +74,16 @@ trait ExportTrait
 		return $this->donorDatabase;
 	}
 
+	/**
+	 * Safe export result to file.
+	 *
+	 * @param   string  $file  Filename.
+	 * @param   array   $data  Export data.
+	 *
+	 * @throws \Exception
+	 *
+	 * @since __DEPLOY_VERSION__
+	 */
 	protected function safeData(string $file, array $data): void
 	{
 		$this->ioStyle->text('Save data to: ' . $file);
