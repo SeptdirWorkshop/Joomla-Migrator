@@ -185,7 +185,9 @@ trait UtilitiesTrait
 		{
 			return;
 		}
+
 		$this->progressbar->advance($step);
+		$this->progressbar->display();
 	}
 
 	/**

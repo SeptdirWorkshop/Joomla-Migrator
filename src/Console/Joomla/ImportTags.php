@@ -9,7 +9,7 @@
  * @link        https://radicalmart.ru/
  */
 
-namespace Joomla\Plugin\System\Migrator\Console;
+namespace Joomla\Plugin\System\Migrator\Console\Joomla;
 
 \defined('_JEXEC') or die;
 

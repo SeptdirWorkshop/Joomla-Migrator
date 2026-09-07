@@ -9,11 +9,12 @@
  * @link        https://radicalmart.ru/
  */
 
-namespace Joomla\Plugin\System\Migrator\Console;
+namespace Joomla\Plugin\System\Migrator\Console\Joomla;
 
 \defined('_JEXEC') or die;
 
 use Joomla\Database\ParameterType;
+use Joomla\Plugin\System\Migrator\Console\AbstractCommand;
 use Joomla\Plugin\System\Migrator\Traits\Commands\ExportTrait;
 use Joomla\Registry\Registry;
 use Joomla\Utilities\ArrayHelper;
@@ -175,7 +176,8 @@ class ExportJoomlaCommand extends AbstractCommand
 			{
 				$item_tags[$tag_id] = $tags[$tag_id];
 			}
-			$item_category = $categories[$item->catid];
+
+			$item_category = (!isset($categories[$item->catid])) ? 'NOT_FOUND' : $categories[$item->catid];
 
 			$path          = $item_category . '|' . $item->alias;
 			$result[$path] = [
@@ -201,7 +203,7 @@ class ExportJoomlaCommand extends AbstractCommand
 				'tags'         => $item_tags,
 			];
 
-			$this->progressbarAdvance();
+
 		}
 		$this->progressbarFinish();
 

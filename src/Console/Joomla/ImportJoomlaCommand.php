@@ -9,7 +9,7 @@
  * @link        https://radicalmart.ru/
  */
 
-namespace Joomla\Plugin\System\Migrator\Console;
+namespace Joomla\Plugin\System\Migrator\Console\Joomla;
 
 \defined('_JEXEC') or die;
 
@@ -17,6 +17,7 @@ use Joomla\Component\Categories\Administrator\Model\CategoryModel;
 use Joomla\Component\Tags\Administrator\Model\TagModel;
 use Joomla\Database\DatabaseAwareTrait;
 use Joomla\Database\ParameterType;
+use Joomla\Plugin\System\Migrator\Console\AbstractCommand;
 use Joomla\Plugin\System\Migrator\Traits\Commands\ImportTrait;
 use Joomla\Utilities\ArrayHelper;
 

@@ -69,15 +69,18 @@ class Migrator extends CMSPlugin implements SubscriberInterface
 
 		// Load from files
 		$commands = [];
-		$files    = Folder::files(Path::clean(JPATH_PLUGINS . '/system/migrator/src/Console'), '.php');
+		$root     = Path::clean(JPATH_PLUGINS . '/system/migrator/src/Console');
+		$files    = Folder::files($root, '.php', true, true);
 		foreach ($files as $file)
 		{
-			if ($file === 'AbstractCommand.php')
+			$filename = ltrim(str_replace($root, '', $file), '/\\');
+			$class    = str_replace('/', '\\', File::stripExt($filename));
+			if ($class === 'AbstractCommand' || $class === 'CleanCommand')
 			{
 				continue;
 			}
 
-			$commands[] = 'Joomla\\Plugin\\System\Migrator\\Console\\' . File::stripExt($file);
+			$commands[] = 'Joomla\\Plugin\\System\Migrator\\Console\\' . $class;
 		}
 
 		foreach ($commands as $commandFQN)
