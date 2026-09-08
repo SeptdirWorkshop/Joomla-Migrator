@@ -13,6 +13,7 @@ namespace Joomla\Plugin\System\Migrator\Console\JoomShopping;
 
 \defined('_JEXEC') or die;
 
+use Joomla\Database\ParameterType;
 use Joomla\Plugin\System\Migrator\Console\AbstractCommand;
 use Joomla\Plugin\System\Migrator\Traits\Commands\ExportTrait;
 
@@ -47,6 +48,7 @@ class ExportJoomShoppingCommand extends AbstractCommand
 	 */
 	protected array $methods = [
 		'exportJoomShoppingCategories',
+		'exportJoomShoppingAttributes',
 	];
 
 	/**
@@ -61,7 +63,7 @@ class ExportJoomShoppingCommand extends AbstractCommand
 	/**
 	 * Method to export categories.
 	 *
-	 * @throws \Exception|\Throwable
+	 * @throws \Throwable
 	 *
 	 * @since __DEPLOY_VERSION__
 	 */
@@ -89,10 +91,10 @@ class ExportJoomShoppingCommand extends AbstractCommand
 		$categories = $this->buildCategoriesNestedSet($rows);
 		$this->progressbarFinish();
 
-		$result = [];
 		$this->ioStyle->text('Prepare data');
 		$this->progressbarStart(count($rows));
-		$mapping = [
+		$result              = [];
+		$translation_mapping = [
 			'name'              => 'title',
 			'alias'             => 'alias',
 			'short_description' => 'introtext',
@@ -110,6 +112,8 @@ class ExportJoomShoppingCommand extends AbstractCommand
 				'access'           => (int) $source->access,
 				'lft'              => $source->lft,
 				'rgt'              => $source->rgt,
+				'image'            => (!empty($source->category_image))
+					? 'components/com_jshopping/files/img_categories/' . $source->category_image : '',
 				'title'            => '',
 				'alias'            => '',
 				'introtext'        => '',
@@ -117,29 +121,10 @@ class ExportJoomShoppingCommand extends AbstractCommand
 				'meta_title'       => '',
 				'meta_description' => '',
 				'meta_keywords'    => '',
-				'translations'     => [],
+				'translation'      => [],
 			];
 
-			foreach ($languages as $language)
-			{
-				if (!isset($item['translations'][$language]))
-				{
-					$item['translations'][$language] = [];
-				}
-
-				foreach ($mapping as $from => $to)
-				{
-					$from_key   = $from . '_' . $language;
-					$from_value = (property_exists($source, $from_key)) ? $source->{$from_key} : '';
-
-					if (empty($item[$to]))
-					{
-						$item[$to] = $from_value;
-					}
-
-					$item['translations'][$language][$to] = $from_value;
-				}
-			}
+			$this->setItemTranslationData($item, $source, $languages, $translation_mapping);
 
 			$result[$item['id']] = $item;
 
@@ -148,6 +133,121 @@ class ExportJoomShoppingCommand extends AbstractCommand
 		$this->progressbarFinish();
 
 		$this->safeData('com_joomshopping.categories', $result);
+	}
+
+	/**
+	 * Method to export attributes.
+	 *
+	 * @throws \Throwable
+	 *
+	 * @since __DEPLOY_VERSION__
+	 */
+	public function exportJoomShoppingAttributes(): void
+	{
+		$this->ioStyle->title('Migrator Export: JoomShopping Attributes');
+
+		$this->ioStyle->text('Get languages');
+		$this->progressbarStart();
+		$languages = $this->getLanguages('#__jshopping_attr');
+		$this->progressbarFinish();
+
+		$this->ioStyle->text('Get items');
+		$this->progressbarStart();
+		$db    = $this->getDonorDatabase();
+		$query = $db->createQuery()
+			->select('*')
+			->from($db->quoteName('#__jshopping_attr'))
+			->order('attr_id ASC');
+		$rows  = $db->setQuery($query)->loadObjectList();
+		$this->progressbarFinish();
+
+		$this->ioStyle->text('Prepare data');
+		$this->progressbarStart(count($rows));
+		$result                     = [];
+		$translation_mapping        = [
+			'name'        => 'title',
+			'description' => 'description',
+		];
+		$option_translation_mapping = [
+			'name' => 'text',
+		];
+		foreach ($rows as $source)
+		{
+			$item = [
+				'id'          => (int) $source->attr_id,
+				'title'       => '',
+				'alias'       => '',
+				'description' => '',
+				'translation' => [],
+				'options'     => [],
+			];
+			$this->setItemTranslationData($item, $source, $languages, $translation_mapping);
+
+			$query   = $db->createQuery()
+				->select('*')
+				->from($db->quoteName('#__jshopping_attr_values'))
+				->where('attr_id = :attr_id')
+				->bind(':attr_id', $item['id'], ParameterType::INTEGER)
+				->order('value_ordering ASC');
+			$options = $db->setQuery($query)->loadObjectList();
+
+			foreach ($options as $option_source)
+			{
+				$option = [
+					'value'    => (int) $option_source->value_id,
+					'text'     => '',
+					'ordering' => (int) $option_source->value_ordering,
+					'image'    => (!empty($option_source->image))
+						? 'components/com_jshopping/files/img_attributes/' . $option_source->image : '',
+				];
+
+				$this->setItemTranslationData($option, $option_source, $languages, $option_translation_mapping);
+
+				$item['options'][] = $option;
+			}
+
+			$result[$item['id']] = $item;
+
+			$this->progressbarAdvance();
+		}
+
+		$this->progressbarFinish();
+
+		$this->safeData('com_joomshopping.attributes', $result);
+	}
+
+	/**
+	 * Method to set item translation data.
+	 *
+	 * @param   array   $item       Result item.
+	 * @param   object  $source     Source item.
+	 * @param   array   $languages  Languages keys array.
+	 * @param   array   $mapping    Fields mapping.
+	 *
+	 * @since __DEPLOY_VERSION__
+	 */
+	protected function setItemTranslationData(array &$item, object $source, array $languages, array $mapping): void
+	{
+		foreach ($languages as $language)
+		{
+			if (!isset($item['translation'][$language]))
+			{
+				$item['translation'][$language] = [];
+			}
+
+			foreach ($mapping as $from => $to)
+			{
+				$from_key   = $from . '_' . $language;
+				$from_value = (property_exists($source, $from_key)) ? $source->{$from_key} : '';
+
+				if (empty($item[$to]))
+				{
+					$item[$to] = $from_value;
+				}
+
+				$item['translation'][$language][$to] = $from_value;
+			}
+		}
 	}
 
 	/**
