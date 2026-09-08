@@ -48,6 +48,7 @@ class ExportJoomShoppingCommand extends AbstractCommand
 	 */
 	protected array $methods = [
 		'exportJoomShoppingCategories',
+		'exportJoomShoppingManufacturers',
 		'exportJoomShoppingAttributes',
 	];
 
@@ -133,6 +134,73 @@ class ExportJoomShoppingCommand extends AbstractCommand
 		$this->progressbarFinish();
 
 		$this->safeData('com_joomshopping.categories', $result);
+	}
+
+	/**
+	 * Method to export manufacturers.
+	 *
+	 * @throws \Throwable
+	 *
+	 * @since __DEPLOY_VERSION__
+	 */
+	public function exportJoomShoppingManufacturers(): void
+	{
+		$this->ioStyle->title('Migrator Export: JoomShopping Manufacturers');
+
+		$this->ioStyle->text('Get languages');
+		$this->progressbarStart();
+		$languages = $this->getLanguages('#__jshopping_manufacturers');
+		$this->progressbarFinish();
+
+		$this->ioStyle->text('Get items');
+		$this->progressbarStart();
+		$db    = $this->getDonorDatabase();
+		$query = $db->createQuery()
+			->select('*')
+			->from($db->quoteName('#__jshopping_manufacturers'))
+			->order('ordering ASC');
+		$rows  = $db->setQuery($query)->loadObjectList();
+		$this->progressbarFinish();
+
+		$this->ioStyle->text('Prepare data');
+		$this->progressbarStart(count($rows));
+		$result              = [];
+		$translation_mapping = [
+			'name'              => 'title',
+			'alias'             => 'alias',
+			'short_description' => 'introtext',
+			'description'       => 'fulltext',
+			'meta_title'        => 'meta_title',
+			'meta_description'  => 'meta_description',
+			'meta_keywords'     => 'meta_keywords',
+		];
+		foreach ($rows as $source)
+		{
+			$item = [
+				'id'               => (int) $source->manufacturer_id,
+				'state'            => (int) $source->manufacturer_publish,
+				'ordering'         => (int) $source->ordering,
+				'image'            => (!empty($source->logo))
+					? 'components/com_jshopping/files/img_manufs/' . $source->manufacturer_logo : '',
+				'title'            => '',
+				'alias'            => '',
+				'introtext'        => '',
+				'fulltext'         => '',
+				'meta_title'       => '',
+				'meta_description' => '',
+				'meta_keywords'    => '',
+				'translation'      => [],
+			];
+
+			$this->setItemTranslationData($item, $source, $languages, $translation_mapping);
+
+			$result[$item['id']] = $item;
+
+			$this->progressbarAdvance();
+		}
+		$this->progressbarFinish();
+
+		$this->safeData('com_joomshopping.manufacturers', $result);
 	}
 
 	/**
