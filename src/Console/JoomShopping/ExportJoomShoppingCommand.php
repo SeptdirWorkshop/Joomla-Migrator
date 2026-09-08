@@ -50,9 +50,10 @@ class ExportJoomShoppingCommand extends AbstractCommand
 	 * @since  __DEPLOY_VERSION__
 	 */
 	protected array $methods = [
-//		'exportJoomShoppingCategories',
-//		'exportJoomShoppingManufacturers',
-//		'exportJoomShoppingAttributes',
+		'exportJoomShoppingCategories',
+		'exportJoomShoppingManufacturers',
+		'exportJoomShoppingAttributes',
+		'exportJoomShoppingCurrencies',
 		'exportJoomShoppingProducts',
 	];
 
@@ -289,6 +290,54 @@ class ExportJoomShoppingCommand extends AbstractCommand
 	}
 
 	/**
+	 * Method to export currencies.
+	 *
+	 * @throws \Throwable
+	 *
+	 * @since __DEPLOY_VERSION__
+	 */
+	public function exportJoomShoppingCurrencies(): void
+	{
+		$this->ioStyle->title('Migrator Export: JoomShopping Currencies');
+
+		$this->ioStyle->text('Get items');
+		$this->progressbarStart();
+		$db    = $this->getDonorDatabase();
+		$query = $db->createQuery()
+			->select('*')
+			->from($db->quoteName('#__jshopping_currencies'))
+			->where($db->quoteName('currency_publish') . ' = 1');
+		$rows  = $db->setQuery($query)->loadObjectList();
+
+		$db        = $this->getDonorDatabase();
+		$query     = $db->createQuery()
+			->select(['currency_id', 'language'])
+			->from($db->quoteName('#__jshopping_currencies_to_language'));
+		$languages = $db->setQuery($query)->loadAssocList('currency_id', 'language');
+
+		$this->progressbarFinish();
+
+		$this->ioStyle->text('Prepare data');
+		$this->progressbarStart(count($rows));
+		$result = [];
+		foreach ($rows as $source)
+		{
+			$item = [
+				'id'       => (int) $source->currency_id,
+				'title'    => $source->currency_name,
+				'code'     => $source->currency_code,
+				'rate'     => (float) $source->currency_value,
+				'language' => (!empty($languages[$source->currency_id])) ? $languages[$source->currency_id] : '*',
+			];
+
+			$result[$item['id']] = $item;
+		}
+		$this->progressbarFinish();
+
+		$this->safeData('com_joomshopping.currencies', $result);
+	}
+
+	/**
 	 * Method to export products.
 	 *
 	 * @throws \Throwable
@@ -303,7 +352,6 @@ class ExportJoomShoppingCommand extends AbstractCommand
 		$this->progressbarStart();
 		$languages = $this->getLanguages('#__jshopping_products');
 		$this->progressbarFinish();
-
 
 		$folder = Path::clean(JPATH_ROOT . '/administrator/migrator');
 		if (is_dir($folder))
