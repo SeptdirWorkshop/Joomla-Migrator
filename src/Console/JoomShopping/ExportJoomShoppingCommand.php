@@ -14,6 +14,9 @@ namespace Joomla\Plugin\System\Migrator\Console\JoomShopping;
 \defined('_JEXEC') or die;
 
 use Joomla\Database\ParameterType;
+use Joomla\Filesystem\File;
+use Joomla\Filesystem\Folder;
+use Joomla\Filesystem\Path;
 use Joomla\Plugin\System\Migrator\Console\AbstractCommand;
 use Joomla\Plugin\System\Migrator\Traits\Commands\ExportTrait;
 
@@ -47,9 +50,10 @@ class ExportJoomShoppingCommand extends AbstractCommand
 	 * @since  __DEPLOY_VERSION__
 	 */
 	protected array $methods = [
-		'exportJoomShoppingCategories',
-		'exportJoomShoppingManufacturers',
-		'exportJoomShoppingAttributes',
+//		'exportJoomShoppingCategories',
+//		'exportJoomShoppingManufacturers',
+//		'exportJoomShoppingAttributes',
+		'exportJoomShoppingProducts',
 	];
 
 	/**
@@ -282,6 +286,173 @@ class ExportJoomShoppingCommand extends AbstractCommand
 		$this->progressbarFinish();
 
 		$this->safeData('com_joomshopping.attributes', $result);
+	}
+
+	/**
+	 * Method to export products.
+	 *
+	 * @throws \Throwable
+	 *
+	 * @since __DEPLOY_VERSION__
+	 */
+	public function exportJoomShoppingProducts(): void
+	{
+		$this->ioStyle->title('Migrator Export: JoomShopping Products');
+
+		$this->ioStyle->text('Get languages');
+		$this->progressbarStart();
+		$languages = $this->getLanguages('#__jshopping_products');
+		$this->progressbarFinish();
+
+
+		$folder = Path::clean(JPATH_ROOT . '/administrator/migrator');
+		if (is_dir($folder))
+		{
+			$this->ioStyle->text('Clean files');
+			$this->progressbarStart();
+			$files = Folder::files($folder, 'com_joomshopping.products', false, true);
+			$count = count($files);
+			if ($count > 0)
+			{
+				$this->progressbar->setMaxSteps($count);
+				foreach ($files as $file)
+				{
+					File::delete($file);
+					$this->progressbarAdvance();
+				}
+			}
+			$this->progressbarFinish();
+		}
+
+		$this->ioStyle->text('Get total');
+		$this->progressbarStart();
+		$db    = $this->getDonorDatabase();
+		$query = $db->createQuery()
+			->select('COUNT(product_id)')
+			->from($db->quoteName('#__jshopping_products'))
+			->where($db->quoteName('parent_id') . ' = 0');
+		$total = $db->setQuery($query)->loadResult();
+		$this->progressbarFinish();
+
+		$limit = 100;
+		$last  = 0;
+		$steps = ceil($total / $limit);
+		for ($s = 1; $s <= $steps; $s++)
+		{
+
+			$progress = ' (' . $s . '/' . $steps . ')';
+			$this->ioStyle->text('Get items' . $progress);
+			$this->progressbarStart();
+			$db    = $this->getDonorDatabase();
+			$query = $db->createQuery()
+				->select('*')
+				->from($db->quoteName('#__jshopping_products'))
+				->where($db->quoteName('parent_id') . ' = 0')
+				->where($db->quoteName('product_id') . ' > :last')
+				->bind(':last', $last, ParameterType::INTEGER)
+				->order('product_id ASC');
+			$rows  = $db->setQuery($query, 0, $limit)->loadObjectList();
+			$this->progressbarFinish();
+
+			$this->ioStyle->text('Prepare data' . $progress);
+			$this->progressbarStart(count($rows));
+			$result              = [];
+			$translation_mapping = [
+				'name'              => 'title',
+				'alias'             => 'alias',
+				'short_description' => 'introtext',
+				'description'       => 'fulltext',
+				'meta_title'        => 'meta_title',
+				'meta_description'  => 'meta_description',
+				'meta_keywords'     => 'meta_keywords',
+			];
+			$attributes          = null;
+			foreach ($rows as $source)
+			{
+				$last = (int) $source->product_id;
+				$this->progressbarAdvance();
+
+				$item = [
+					'id'           => (int) $source->product_id,
+					'state'        => (int) $source->product_publish,
+					'code'         => $source->manufacturer_code,
+					'manufacturer' => (int) $source->product_manufacturer_id,
+					'categories'   => [],
+					'price'        => (float) $source->product_price,
+					'currency'     => (int) $source->currency_id,
+					'discount'     => 0,
+
+					'image'  => (!empty($source->image))
+						? 'components/com_jshopping/files/img_products/' . $source->image : '',
+					'images' => [],
+
+					'title'            => '',
+					'alias'            => '',
+					'introtext'        => '',
+					'fulltext'         => '',
+					'meta_title'       => '',
+					'meta_description' => '',
+					'meta_keywords'    => '',
+
+					'variants'    => [],
+					'translation' => [],
+				];
+				$this->setItemTranslationData($item, $source, $languages, $translation_mapping);
+
+				$query              = $db->createQuery()
+					->select('category_id')
+					->from($db->quoteName('#__jshopping_products_to_categories'))
+					->where($db->quoteName('product_id') . ' = :product_id')
+					->bind(':product_id', $source->product_id, ParameterType::INTEGER);
+				$item['categories'] = $db->setQuery($query)->loadColumn();
+
+				$query          = $db->createQuery()
+					->select('image_name')
+					->from($db->quoteName('#__jshopping_products_images'))
+					->where($db->quoteName('product_id') . ' = :product_id')
+					->bind(':product_id', $source->product_id, ParameterType::INTEGER)
+					->order('ordering ASC');
+				$item['images'] = $db->setQuery($query)->loadColumn();
+
+
+				$query    = $db->createQuery()
+					->select('*')
+					->from($db->quoteName('#__jshopping_products_attr'))
+					->where($db->quoteName('product_id') . ' = :product_id')
+					->bind(':product_id', $source->product_id, ParameterType::INTEGER);
+				$variants = $db->setQuery($query)->loadAssocList();
+				foreach ($variants as $variant_source)
+				{
+					$variant = [
+						'id'     => $variant_source['product_id'] . '_' . $variant_source['product_attr_id'],
+						'code'   => $variant_source['manufacturer_code'],
+						'price'  => (float) $variant_source['price'],
+						'fields' => [],
+					];
+
+					foreach ($variant_source as $variant_source_key => $variant_source_value)
+					{
+						if (str_starts_with($variant_source_key, 'attr_') === false)
+						{
+							continue;
+						}
+
+						$variant_source_id = (int) str_replace('attr_', '', $variant_source_key);
+
+						$variant['fields'][$variant_source_id] = (int) $variant_source_value;
+					}
+
+					$item['variants'][$variant['id']] = $variant;
+				}
+
+				$result[$item['id']] = $item;
+			}
+			$this->progressbarFinish();
+
+			$this->safeData('com_joomshopping.products.' . $s, $result, $progress);
+
+			$db->disconnect();
+		}
 	}
 
 	/**

@@ -84,9 +84,9 @@ trait ExportTrait
 	 *
 	 * @since __DEPLOY_VERSION__
 	 */
-	protected function safeData(string $file, array $data): void
+	protected function safeData(string $file, array $data, string $progress = ''): void
 	{
-		$this->ioStyle->text('Save data to: ' . $file);
+		$this->ioStyle->text('Save data' . $progress);
 		$this->progressbarStart();
 		$data   = (new Registry($data))->toString();
 		$folder = Path::clean(JPATH_ROOT . '/administrator/migrator');
@@ -105,5 +105,7 @@ trait ExportTrait
 		}
 
 		$this->progressbarFinish();
+
+		$this->ioStyle->note('Data save finished to: ' . $filename);
 	}
 }
