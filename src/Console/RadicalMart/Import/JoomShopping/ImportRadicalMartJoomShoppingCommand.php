@@ -15,6 +15,8 @@ namespace Joomla\Plugin\System\Migrator\Console\RadicalMart\Import\JoomShopping;
 
 use Joomla\CMS\MVC\Factory\MVCFactoryAwareTrait;
 use Joomla\Component\RadicalMart\Administrator\Model\CategoryModel;
+use Joomla\Component\RadicalMart\Administrator\Model\FieldModel;
+use Joomla\Component\RadicalMart\Administrator\Traits\Command\UtilitiesTrait;
 use Joomla\Database\DatabaseAwareTrait;
 use Joomla\Plugin\System\Migrator\Console\AbstractCommand;
 use Joomla\Plugin\System\Migrator\Traits\Commands\ImportRadicalMartTrait;
@@ -26,6 +28,7 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 	use ImportTrait;
 	use ImportRadicalMartTrait;
 	use MVCFactoryAwareTrait;
+	use UtilitiesTrait;
 
 	/**
 	 * The default command name
@@ -55,6 +58,7 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 	protected array $methods = [
 		'importCategories',
 		'importManufacturers',
+		'importAttributes',
 	];
 
 	/**
@@ -156,10 +160,11 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 		}
 
 		$this->progressbarFinish();
+		$this->cleanRadicalMartRAM();
 	}
 
 	/**
-	 * Method to import categories.
+	 * Method to import manufacturers.
 	 *
 	 * @throws \Exception|\Throwable
 	 *
@@ -251,6 +256,127 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 		}
 
 		$this->progressbarFinish();
+		$this->cleanRadicalMartRAM();
+	}
+
+	/**
+	 * Method to import attributes.
+	 *
+	 * @throws \Exception|\Throwable
+	 *
+	 * @since __DEPLOY_VERSION__
+	 */
+	public function importAttributes(): void
+	{
+		$this->ioStyle->title('Migrator Import: RadicalMart Fields from JoomShopping Attributes');
+
+		$data = $this->getData('com_joomshopping.attributes');
+		if (count($data) === 0)
+		{
+			$this->ioStyle->info('Nothing to import.');
+
+			return;
+		}
+
+		$this->ioStyle->text('Import data');
+		$this->loadSuperUserIdentity();
+		$this->progressbarStart(count($data));
+
+		$multilanguage = $this->getMultilanguage();
+		foreach ($data as $datum)
+		{
+			$selector = $this->getMigratorSelector('attribute', $datum['id']);
+			$id       = $this->findItemId('field', $selector);
+			if (empty($id))
+			{
+				$id = 0;
+			}
+
+			$this->setMultilanguageDatum($datum, ['title', 'alias', 'description']);
+
+			$save = [
+				'id'             => $id,
+				'title'          => $datum['title'],
+				'alias'          => $datum['alias'],
+				'area'           => 'products',
+				'all_categories' => 1,
+				'plugin'         => 'standard',
+				'description'    => $datum['description'],
+				'options'        => [],
+				'params'         => [
+					'type'                   => 'list',
+					'multiple'               => 0,
+					'display_products'       => 0,
+					'display_products_as'    => 'string',
+					'display_product'        => 0,
+					'display_product_as'     => 'string',
+					'display_filter'         => 0,
+					'display_filter_as'      => 'checkboxes',
+					'display_variability'    => 1,
+					'display_variability_as' => 'list',
+
+				],
+				'state'          => 1,
+				'plugins'        => [
+					'migrator_selector' => $selector,
+				],
+				'language'       => '*'
+			];
+
+			if ($multilanguage && !empty($datum['translation']))
+			{
+				$save['plugins']['translation'] = [];
+				foreach ($datum['translation'] as $lang => $translation)
+				{
+					$save['plugins']['translation'][$lang] = [
+						'title'       => $translation['title'],
+						'description' => $translation['description'],
+					];
+				}
+			}
+
+			foreach ($datum['options'] as $option)
+			{
+				$this->setMultilanguageDatum($option, ['text']);
+				$save_option = [
+					'value'    => 'js-attr_value_id-' . $option['value'],
+					'text'     => $option['text'],
+					'image'    => '',
+					'ordering' => $option['ordering'],
+					'plugins'  => [],
+				];
+
+				if ($multilanguage && !empty($option['translation']))
+				{
+					foreach ($option['translation'] as $option_lang => $option_translation)
+					{
+						$save_option['plugins']['translation'][$option_lang] = [
+							'text' => $option_translation['text'],
+						];
+					}
+				}
+
+				$save['options'][] = $save_option;
+			}
+
+			/** @var FieldModel $model */
+			$model = $this->getComponentModel('com_radicalmart', 'Field');
+			$model->setState('field.id', $id);
+			$model->setState('save.task', 'save');
+
+			$result = $model->save($save);
+			if ($result === false)
+			{
+				throw new \Exception(implode(PHP_EOL, $this->getModelErrorsMessages($model)), 500);
+			}
+
+			$this->_mapping['field'][$selector] = $result;
+
+			$this->progressbarAdvance();
+		}
+
+		$this->progressbarFinish();
+		$this->cleanRadicalMartRAM();
 	}
 
 	/**
