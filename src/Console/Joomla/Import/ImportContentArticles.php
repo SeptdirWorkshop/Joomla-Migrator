@@ -9,11 +9,11 @@
  * @link        https://radicalmart.ru/
  */
 
-namespace Joomla\Plugin\System\Migrator\Console\Joomla;
+namespace Joomla\Plugin\System\Migrator\Console\Joomla\Import;
 
 \defined('_JEXEC') or die;
 
-class ExportContentArticlesCommand extends ExportJoomlaCommand
+class ImportContentArticles extends ImportJoomlaCommand
 {
 	/**
 	 * The default command name
@@ -22,7 +22,7 @@ class ExportContentArticlesCommand extends ExportJoomlaCommand
 	 *
 	 * @since  __DEPLOY_VERSION__
 	 */
-	protected static $defaultName = 'migrator:export:content:articles';
+	protected static $defaultName = 'migrator:import:content:articles';
 
 	/**
 	 * Command text title for configure.
@@ -31,7 +31,7 @@ class ExportContentArticlesCommand extends ExportJoomlaCommand
 	 *
 	 * @since  __DEPLOY_VERSION__
 	 */
-	protected string $commandText = 'Migrator Export: Content Articles';
+	protected string $commandText = 'Migrator Import: Content Articles';
 
 	/**
 	 * Command methods for step by step run.
@@ -41,6 +41,6 @@ class ExportContentArticlesCommand extends ExportJoomlaCommand
 	 * @since  __DEPLOY_VERSION__
 	 */
 	protected array $methods = [
-		'exportContentArticles',
+		'importContentArticles',
 	];
 }

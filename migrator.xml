@@ -18,6 +18,7 @@
 		<language tag="ru-RU">ru-RU/plg_system_migrator.sys.ini</language>
 	</languages>
 	<files>
+		<folder>forms</folder>
 		<folder>services</folder>
 		<folder plugin="migrator">src</folder>
 	</files>
@@ -26,8 +27,8 @@
 			<fieldset name="basic">
 				<field type="note" label="PLG_SYSTEM_MIGRATOR_PARAMS_DB"/>
 				<field name="db_type" type="list"
-				       label="PLG_SYSTEM_MIGRATOR_PARAMS_DB_TYPE"
-				       default="">
+					   label="PLG_SYSTEM_MIGRATOR_PARAMS_DB_TYPE"
+					   default="">
 					<option value="">PLG_SYSTEM_MIGRATOR_PARAMS_DB_FROM_RECIPIENT</option>
 					<option value="mysql">MYSQL</option>
 					<option value="mysqli">MYSQLI</option>
@@ -35,24 +36,24 @@
 					<option value="postgresql">POSTGRESQL</option>
 				</field>
 				<field name="db_host" type="text"
-				       label="PLG_SYSTEM_MIGRATOR_PARAMS_DB_HOST"
-				       hint="PLG_SYSTEM_MIGRATOR_PARAMS_DB_FROM_RECIPIENT"
-				       default=""/>
+					   label="PLG_SYSTEM_MIGRATOR_PARAMS_DB_HOST"
+					   hint="PLG_SYSTEM_MIGRATOR_PARAMS_DB_FROM_RECIPIENT"
+					   default=""/>
 				<field name="db_user" type="text"
-				       label="PLG_SYSTEM_MIGRATOR_PARAMS_DB_USER"
-				       hint="PLG_SYSTEM_MIGRATOR_PARAMS_DB_FROM_RECIPIENT"
-				       default=""/>
+					   label="PLG_SYSTEM_MIGRATOR_PARAMS_DB_USER"
+					   hint="PLG_SYSTEM_MIGRATOR_PARAMS_DB_FROM_RECIPIENT"
+					   default=""/>
 				<field name="db_password" type="password"
-				       label="PLG_SYSTEM_MIGRATOR_PARAMS_DB_PASSWORD"
-				       hint="PLG_SYSTEM_MIGRATOR_PARAMS_DB_FROM_RECIPIENT"
-				       default=""/>
+					   label="PLG_SYSTEM_MIGRATOR_PARAMS_DB_PASSWORD"
+					   hint="PLG_SYSTEM_MIGRATOR_PARAMS_DB_FROM_RECIPIENT"
+					   default=""/>
 				<field name="db_name" type="text"
-				       label="PLG_SYSTEM_MIGRATOR_PARAMS_DB_NAME"
-				       required="true"/>
+					   label="PLG_SYSTEM_MIGRATOR_PARAMS_DB_NAME"
+					   required="true"/>
 				<field name="db_prefix" type="text"
-				       label="PLG_SYSTEM_MIGRATOR_PARAMS_DB_PREFIX"
-				       hint="PLG_SYSTEM_MIGRATOR_PARAMS_DB_FROM_RECIPIENT"
-				       default=""/>
+					   label="PLG_SYSTEM_MIGRATOR_PARAMS_DB_PREFIX"
+					   hint="PLG_SYSTEM_MIGRATOR_PARAMS_DB_FROM_RECIPIENT"
+					   default=""/>
 			</fieldset>
 		</fields>
 	</config>

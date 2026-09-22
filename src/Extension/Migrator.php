@@ -16,6 +16,7 @@ namespace Joomla\Plugin\System\Migrator\Extension;
 use Joomla\Application\ApplicationEvents;
 use Joomla\Application\Event\ApplicationEvent;
 use Joomla\CMS\Application\ConsoleApplication;
+use Joomla\CMS\Event\Model\PrepareFormEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Factory\MVCFactoryAwareTrait;
 use Joomla\CMS\Plugin\CMSPlugin;
@@ -50,6 +51,7 @@ class Migrator extends CMSPlugin implements SubscriberInterface
 	{
 		return [
 			ApplicationEvents::BEFORE_EXECUTE => 'onBeforeExecute',
+			'onContentPrepareForm'            => 'onContentPrepareForm',
 		];
 	}
 
@@ -113,4 +115,35 @@ class Migrator extends CMSPlugin implements SubscriberInterface
 		}
 	}
 
+	/**
+	 * Listener for the `onContentPrepareForm` event.
+	 *
+	 * @param   PrepareFormEvent  $event  The event.
+	 *
+	 * @throws  \Exception
+	 *
+	 * @since  1.0.0
+	 */
+	public function onContentPrepareForm(PrepareFormEvent $event): void
+	{
+		if (!$this->getApplication()->isClient('administrator'))
+		{
+			return;
+		}
+
+		$form      = $event->getArgument('subject');
+		$form_name = $form->getName();
+		$root      = Path::clean(JPATH_PLUGINS . '/system/migrator/forms');
+		$files     = Folder::files($root, '.xml');
+		foreach ($files as $file)
+		{
+			$file_selector = str_replace('.xml', '', $file);
+			if ($form_name !== $file_selector)
+			{
+				continue;
+			}
+
+			$form->loadFile(Path::clean($root . '/' . $file));
+		}
+	}
 }
