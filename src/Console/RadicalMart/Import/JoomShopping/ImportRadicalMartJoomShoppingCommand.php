@@ -61,8 +61,8 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 	 * @since  __DEPLOY_VERSION__
 	 */
 	protected array $methods = [
-//		'importCategories',
-//		'importManufacturers',
+		'importCategories',
+		'importManufacturers',
 		'importAttributes',
 		'importProducts',
 	];
@@ -586,64 +586,64 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					$meta_products = [];
 					foreach ($datum['variants'] as $variant)
 					{
-						$product_save          = $source;
-						$product_save_selector = $this->getMigratorSelector('product', $variant['id']);
-						$product_save_id       = $this->findItemId('product', $product_save_selector);
-						if (empty($product_save_id))
+						$product          = $source;
+						$product_selector = $this->getMigratorSelector('product', $variant['id']);
+						$product_id       = $this->findItemId('product', $product_selector);
+						if (empty($product_id))
 						{
-							$product_save_id = 0;
+							$product_id = 0;
 						}
 
-						$product_save_subtitle = [];
-						foreach ($variant['fields'] as $variant_field_id => $variant_field_value)
+						$product_subtitle = [];
+						foreach ($variant['fields'] as $field_id => $field_value)
 						{
-							if (empty($variant_field_value))
+							if (empty($field_value))
 							{
 								continue;
 							}
 
-							$variant_value_rm = 'attr_value_id-' . $variant_field_value;
+							$value_rm = 'attr_value_id-' . $field_value;
 
-							$field_selector = $this->getMigratorSelector('attribute', $variant_field_id);
+							$field_selector = $this->getMigratorSelector('attribute', $field_id);
 							$field_find     = $this->findFieldData($field_selector);
 							if (empty($field_find))
 							{
 								continue;
 							}
 
-							if (empty($field_find->options[$variant_value_rm]))
+							if (empty($field_find->options[$value_rm]))
 							{
 								continue;
 							}
 
 							$meta_fields[] = $field_find->id;
 
-							$product_save['fields'][$field_find->alias] = $variant_value_rm;
+							$product['fields'][$field_find->alias] = $value_rm;
 
-							$product_save_subtitle[] = $field_find->title . ': ' . $field_find->options[$variant_value_rm];
+							$product_subtitle[] = $field_find->title . ': ' . $field_find->options[$value_rm];
 						}
 
-						$product_save['id']               = $product_save_id;
-						$product_save['meta_variability'] = $meta_id;
+						$product['id']               = $product_id;
+						$product['meta_variability'] = $meta_id;
 
-						$product_save['title']  .= ' (' . implode(' | ', $product_save_subtitle) . ')';
-						$product_save['prices'] = $this->prepareProductPrices($variant['price'], $currencies_rates);
+						$product['title']  .= ' (' . implode(' | ', $product_subtitle) . ')';
+						$product['prices'] = $this->prepareProductPrices($variant['price'], $currencies_rates);
 
-						$product_save['plugins']['migrator_selector'] = $product_save_selector;
+						$product['plugins']['migrator_selector'] = $product_selector;
 
 						/** @var ProductModel $model */
 						$model = $this->getComponentModel('com_radicalmart', 'Product');
-						$model->setState('product.id', $product_save_id);
+						$model->setState('product.id', $product_id);
 						$model->setState('save.task', 'save');
 						$model->setState('update.meta_variability', 0);
 
-						$result = $model->save($product_save);
+						$result = $model->save($product);
 						if ($result === false)
 						{
 							throw new \Exception(implode(PHP_EOL, $this->getModelErrorsMessages($model)), 500);
 						}
 
-						$this->_mapping['product'][$product_save_selector] = $result;
+						$this->_mapping['product'][$product_selector] = $result;
 
 						$meta_products[] = ['id' => $result];
 					}
@@ -659,6 +659,7 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					$meta['products']                     = $meta_products;
 					$meta['fields']                       = [];
 					$meta['params']['variability_fields'] = $meta_fields;
+					$meta['plugins']['migrator_selector'] = $meta_selector;
 
 					/** @var MetaModel $model */
 					$model = $this->getComponentModel('com_radicalmart', 'Meta');
@@ -670,6 +671,9 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					{
 						throw new \Exception(implode(PHP_EOL, $this->getModelErrorsMessages($model)), 500);
 					}
+
+
+					$this->_mapping['meta'][$meta_selector] = $result;
 				}
 
 				if ($c >= 20)
