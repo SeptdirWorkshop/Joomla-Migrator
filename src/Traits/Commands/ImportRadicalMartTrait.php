@@ -15,6 +15,7 @@ use Joomla\CMS\Language\Multilanguage;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\Component\RadicalMart\Administrator\Helper\LanguagesHelper;
 use Joomla\Database\DatabaseAwareTrait;
+use Joomla\Registry\Registry;
 
 \defined('_JEXEC') or die;
 
@@ -41,11 +42,10 @@ trait ImportRadicalMartTrait
 	protected string|bool|null $_multilanguage = null;
 
 	/**
-	 * Method to find RadicalMart item id from 1c id.
+	 * Method to find RadicalMart item id from migrator id.
 	 *
-	 * @param   string  $type            Item type [category|product|field]
-	 * @param   string  $integration_id  1C item id.
-	 * @param   string  $selector        Raicalmart search subcol.
+	 * @param   string  $type       Item type [category|product|field|meta]
+	 * @param   string  $source_id  Source item id.
 	 *
 	 * @throws \Exception
 	 *
@@ -53,16 +53,16 @@ trait ImportRadicalMartTrait
 	 *
 	 * @since __DEPLOY_VERSION__
 	 */
-	protected function findItemId(string $type, string $integration_id, string $selector = 'migrator_selector'): int
+	protected function findItemId(string $type, string $source_id): int
 	{
 		if (!isset($this->_mapping[$type]) || count($this->_mapping[$type]) > 1000)
 		{
 			$this->_mapping[$type] = [];
 		}
 
-		if (isset($this->_mapping[$type][$integration_id]))
+		if (isset($this->_mapping[$type][$source_id]))
 		{
-			return $this->_mapping[$type][$integration_id];
+			return $this->_mapping[$type][$source_id];
 		}
 
 		$tables = [
@@ -80,15 +80,60 @@ trait ImportRadicalMartTrait
 		$query = $db->getQuery(true)
 			->select('id')
 			->from($db->quoteName($tables[$type]))
-			->where('JSON_VALUE(plugins, ' . $db->quote('$."' . $selector . '"') . ') = :1c_id')
-			->bind(':1c_id', $integration_id);
+			->where('JSON_VALUE(plugins, ' . $db->quote('$."migrator_selector"') . ') = :source_id')
+			->bind(':source_id', $source_id);
 		$find  = $db->setQuery($query, 0, 1)->loadResult();
 
 		$result = (!empty($find)) ? (int) $find : 0;
 
-		$this->_mapping[$type][$integration_id] = $result;
+		$this->_mapping[$type][$source_id] = $result;
 
 		return $result;
+	}
+
+	/**
+	 * Method to find RadicalMart item id from migrator id.
+	 *
+	 * @param   string  $source_id  Source item id.
+	 *
+	 * @throws \Exception
+	 *
+	 * @return object|bool RadicalMart field data, False if not found.
+	 *
+	 * @since __DEPLOY_VERSION__
+	 */
+	protected function findFieldData(string $source_id): object|bool
+	{
+		$type = 'field_data';
+		if (!isset($this->_mapping[$type]) || count($this->_mapping[$type]) > 1000)
+		{
+			$this->_mapping[$type] = [];
+		}
+
+		$db    = $this->getDatabase();
+		$query = $db->getQuery(true)
+			->select(['id', 'alias', 'title', 'options'])
+			->from($db->quoteName('#__radicalmart_fields'))
+			->where('JSON_VALUE(plugins, ' . $db->quote('$."migrator_selector"') . ') = :source_id')
+			->bind(':source_id', $source_id);
+		$find  = $db->setQuery($query, 0, 1)->loadObject();
+		if (empty($find) || empty($find->id))
+		{
+			$this->_mapping[$type][$source_id] = false;
+
+			return false;
+		}
+
+		$options = [];
+		foreach ((new Registry($find->options))->toArray() as $option)
+		{
+			$options[$option['value']] = $option['text'];
+		}
+		$find->options = $options;
+
+		$this->_mapping[$type][$source_id] = $find;
+
+		return $find;
 	}
 
 	/**

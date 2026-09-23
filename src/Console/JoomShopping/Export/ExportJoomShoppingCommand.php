@@ -387,7 +387,6 @@ class ExportJoomShoppingCommand extends AbstractCommand
 		$steps = ceil($total / $limit);
 		for ($s = 1; $s <= $steps; $s++)
 		{
-
 			$progress = ' (' . $s . '/' . $steps . ')';
 			$this->ioStyle->text('Get items' . $progress);
 			$this->progressbarStart();
