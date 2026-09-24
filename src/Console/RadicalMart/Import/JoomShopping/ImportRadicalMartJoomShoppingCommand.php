@@ -533,8 +533,8 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 							'introtext' => $translation['introtext'],
 							'fulltext'  => $translation['fulltext'],
 							'params'    => [
-								'seo_category_title'       => $translation['meta_title'],
-								'seo_category_description' => $translation['meta_description'],
+								'seo_product_title'       => $translation['meta_title'],
+								'seo_product_description' => $translation['meta_description'],
 							]
 						];
 					}
@@ -677,8 +677,8 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					$meta_seo_fields_string = [];
 					foreach (array_unique($meta_seo_fields) as $meta_seo_field)
 					{
-						$meta_seo_fields_string[] = '{product.field.' . $meta_seo_field . '.title}:'
-							. '{product.field.' . $meta_seo_field . '.value}';
+						$meta_seo_fields_string[] = '{product.fields.' . $meta_seo_field . '.title}:'
+							. '{product.fields.' . $meta_seo_field . '.value}';
 					}
 					$meta_seo_fields_string = '(' . implode(' | ', $meta_seo_fields_string) . ')';
 
