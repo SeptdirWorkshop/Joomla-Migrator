@@ -664,11 +664,11 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					$meta['params']['variability_fields'] = array_unique(ArrayHelper::toInteger($meta_fields));
 					if (empty($meta['params']['seo_product_title']))
 					{
-						$meta['params']['seo_product_title'] = '{product.variability.title}';
+						$meta['params']['seo_product_title'] = '{meta.title}';
 					}
 					if (empty($meta['params']['seo_product_description']))
 					{
-						$meta['params']['seo_product_description'] = '{product.variability.introtext}';
+						$meta['params']['seo_product_description'] = '{meta.introtext}';
 					}
 					if (empty($meta['params']['seo_product_h1']))
 					{
