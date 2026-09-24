@@ -26,6 +26,7 @@ use Joomla\Filesystem\Path;
 use Joomla\Plugin\System\Migrator\Console\AbstractCommand;
 use Joomla\Plugin\System\Migrator\Traits\Commands\ImportRadicalMartTrait;
 use Joomla\Plugin\System\Migrator\Traits\Commands\ImportTrait;
+use Joomla\Utilities\ArrayHelper;
 
 class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 {
@@ -315,7 +316,7 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					'null_value'             => 1,
 					'display_products'       => 0,
 					'display_products_as'    => 'string',
-					'display_product'        => 0,
+					'display_product'        => 1,
 					'display_product_as'     => 'string',
 					'display_filter'         => 0,
 					'display_filter_as'      => 'checkboxes',
@@ -346,7 +347,7 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 			{
 				$this->setMultilanguageDatum($option, ['text']);
 				$save_option = [
-					'value'    => 'attr_value_id-' . $option['value'],
+					'value'    => 'attr-value-id-' . $option['value'],
 					'text'     => $option['text'],
 					'image'    => '',
 					'ordering' => $option['ordering'],
@@ -582,8 +583,9 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					$source['params']    = [];
 					$source['plugins']   = [];
 
-					$meta_fields   = [];
-					$meta_products = [];
+					$meta_fields     = [];
+					$meta_seo_fields = [];
+					$meta_products   = [];
 					foreach ($datum['variants'] as $variant)
 					{
 						$product          = $source;
@@ -602,7 +604,7 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 								continue;
 							}
 
-							$value_rm = 'attr_value_id-' . $field_value;
+							$value_rm = 'attr-value-id-' . $field_value;
 
 							$field_selector = $this->getMigratorSelector('attribute', $field_id);
 							$field_find     = $this->findFieldData($field_selector);
@@ -616,7 +618,8 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 								continue;
 							}
 
-							$meta_fields[] = $field_find->id;
+							$meta_fields[]     = $field_find->id;
+							$meta_seo_fields[] = $field_find->alias;
 
 							$product['fields'][$field_find->alias] = $value_rm;
 
@@ -658,8 +661,31 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					$meta['prices']                       = [];
 					$meta['products']                     = $meta_products;
 					$meta['fields']                       = [];
-					$meta['params']['variability_fields'] = $meta_fields;
-					$meta['plugins']['migrator_selector'] = $meta_selector;
+					$meta['params']['variability_fields'] = array_unique(ArrayHelper::toInteger($meta_fields));
+					if (empty($meta['params']['seo_product_title']))
+					{
+						$meta['params']['seo_product_title'] = '{product.variability.title}';
+					}
+					if (empty($meta['params']['seo_product_description']))
+					{
+						$meta['params']['seo_product_description'] = '{product.variability.introtext}';
+					}
+					if (empty($meta['params']['seo_product_h1']))
+					{
+						$meta['params']['seo_product_h1'] = $meta['params']['seo_product_title'];
+					}
+					$meta_seo_fields_string = [];
+					foreach (array_unique($meta_seo_fields) as $meta_seo_field)
+					{
+						$meta_seo_fields_string[] = '{product.field.' . $meta_seo_field . '.title}:'
+							. '{product.field.' . $meta_seo_field . '.value}';
+					}
+					$meta_seo_fields_string = '(' . implode(' | ', $meta_seo_fields_string) . ')';
+
+					$meta['params']['seo_product_title']       .= ' ' . $meta_seo_fields_string;
+					$meta['params']['seo_product_description'] .= ' ' . $meta_seo_fields_string;
+					$meta['params']['seo_product_h1']          .= ' ' . $meta_seo_fields_string;
+					$meta['plugins']['migrator_selector']      = $meta_selector;
 
 					/** @var MetaModel $model */
 					$model = $this->getComponentModel('com_radicalmart', 'Meta');
