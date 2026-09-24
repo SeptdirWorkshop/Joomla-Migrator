@@ -364,7 +364,7 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					}
 				}
 
-				$save['options'][] = $save_option;
+				$save['options'][$save_option['value']] = $save_option;
 			}
 
 			/** @var FieldModel $model */
@@ -677,7 +677,7 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					$meta_seo_fields_string = [];
 					foreach (array_unique($meta_seo_fields) as $meta_seo_field)
 					{
-						$meta_seo_fields_string[] = '{product.fields.' . $meta_seo_field . '.title}:'
+						$meta_seo_fields_string[] = '{product.fields.' . $meta_seo_field . '.title}: '
 							. '{product.fields.' . $meta_seo_field . '.value}';
 					}
 					$meta_seo_fields_string = '(' . implode(' | ', $meta_seo_fields_string) . ')';
