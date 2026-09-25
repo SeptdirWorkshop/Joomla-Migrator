@@ -709,7 +709,7 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 						$meta_seo_fields_string[] = '{product.fields.' . $meta_field_alias . '.title}: '
 							. '{product.fields.' . $meta_field_alias . '.value}';
 					}
-					$meta_seo_fields_string = ' - ' . implode(', ', $meta_seo_fields_string);
+					$meta_seo_fields_string = ' || ' . implode(', ', $meta_seo_fields_string);
 
 					$meta['params']['seo_product_title']       .= $meta_seo_fields_string;
 					$meta['params']['seo_product_description'] .= $meta_seo_fields_string;
