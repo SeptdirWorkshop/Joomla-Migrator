@@ -585,9 +585,8 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					$source['params']    = [];
 					$source['plugins']   = [];
 
-					$meta_fields     = [];
-					$meta_seo_fields = [];
-					$meta_products   = [];
+					$meta_fields   = [];
+					$meta_products = [];
 					foreach ($datum['variants'] as $variant)
 					{
 						$product          = $source;
@@ -620,8 +619,16 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 								continue;
 							}
 
-							$meta_fields[]     = $field_find->id;
-							$meta_seo_fields[] = $field_find->alias;
+							if (!isset($meta_fields[$field_find->id]))
+							{
+								$meta_fields[$field_find->id] = [
+									'id'     => $field_find->id,
+									'alias'  => $field_find->alias,
+									'values' => [],
+								];
+							}
+
+							$meta_fields[$field_find->id]['values'][] = $value_rm;
 
 							$product['fields'][$field_find->alias] = $value_rm;
 
@@ -658,12 +665,35 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 						$meta_id = 0;
 					}
 
-					$meta['id']                           = $meta_id;
-					$meta['type']                         = 'variability';
-					$meta['prices']                       = [];
-					$meta['products']                     = $meta_products;
-					$meta['fields']                       = [];
-					$meta['params']['variability_fields'] = array_unique(ArrayHelper::toInteger($meta_fields));
+
+					if (count($meta_products) > 1 && count($meta_fields) > 1)
+					{
+						foreach ($meta_fields as $mf => $meta_field)
+						{
+							$meta_field['values'] = array_unique($meta_field['values']);
+
+							if (count($meta_field['values']) === 1)
+							{
+								unset($meta_fields[$mf]);
+							}
+
+							if (count($meta_fields) === 1)
+							{
+								break;
+							}
+						}
+					}
+
+					$meta_fields_ids     = array_keys($meta_fields);
+					$meta_fields_aliases = ArrayHelper::getColumn($meta_fields, 'alias');
+
+					$meta['id']       = $meta_id;
+					$meta['type']     = 'variability';
+					$meta['prices']   = [];
+					$meta['products'] = $meta_products;
+					$meta['fields']   = [];
+
+					$meta['params']['variability_fields'] = $meta_fields_ids;
 					if (empty($meta['params']['seo_product_title']))
 					{
 						$meta['params']['seo_product_title'] = '{meta.title}';
@@ -674,20 +704,38 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					}
 
 					$meta_seo_fields_string = [];
-					foreach (array_unique($meta_seo_fields) as $meta_seo_field)
+					foreach ($meta_fields_aliases as $meta_field_alias)
 					{
-						$meta_seo_fields_string[] = '{product.fields.' . $meta_seo_field . '.title}: '
-							. '{product.fields.' . $meta_seo_field . '.value}';
+						$meta_seo_fields_string[] = '{product.fields.' . $meta_field_alias . '.title}: '
+							. '{product.fields.' . $meta_field_alias . '.value}';
 					}
 					$meta_seo_fields_string = ' - ' . implode(', ', $meta_seo_fields_string);
 
 					$meta['params']['seo_product_title']       .= $meta_seo_fields_string;
 					$meta['params']['seo_product_description'] .= $meta_seo_fields_string;
 
-					$meta['params']['seo_product_h1']         = $meta['params']['seo_product_title'];
-					$meta['params']['seo_product_breadcrumb'] = $meta['params']['seo_product_title'];
+					$meta['params']['seo_product_h1']          = $meta['params']['seo_product_title'];
+					$meta['params']['seo_product_breadcrumbs'] = $meta['params']['seo_product_title'];
 
 					$meta['plugins']['migrator_selector'] = $meta_selector;
+
+					if (!empty($meta['plugins']['translation']))
+					{
+						foreach ($meta['plugins']['translation'] as &$translation)
+						{
+							if (!empty($translation['params']['seo_product_title']))
+							{
+								$translation['params']['seo_product_title']       .= $meta_seo_fields_string;
+								$translation['params']['seo_product_h1']          = $translation['params']['seo_product_title'];
+								$translation['params']['seo_product_breadcrumbs'] = $translation['params']['seo_product_title'];
+							}
+
+							if (!empty($translation['params']['seo_product_description']))
+							{
+								$translation['params']['seo_product_description'] .= $meta_seo_fields_string;
+							}
+						}
+					}
 
 					/** @var MetaModel $model */
 					$model = $this->getComponentModel('com_radicalmart', 'Meta');
