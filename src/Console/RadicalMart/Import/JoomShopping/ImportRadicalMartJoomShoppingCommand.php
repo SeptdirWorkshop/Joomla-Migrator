@@ -314,9 +314,11 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					'type'                   => 'list',
 					'multiple'               => 0,
 					'null_value'             => 1,
+					'load_products'          => 0,
 					'display_products'       => 0,
 					'display_products_as'    => 'string',
-					'display_product'        => 1,
+					'load_product'           => 1,
+					'display_product'        => 0,
 					'display_product_as'     => 'string',
 					'display_filter'         => 0,
 					'display_filter_as'      => 'checkboxes',
@@ -457,7 +459,8 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 			foreach ($data as $datum)
 			{
 				$c++;
-				$this->setMultilanguageDatum($datum, ['title', 'alias', 'introtext', 'fulltext', 'meta_title', 'meta_description']);
+				$this->setMultilanguageDatum($datum, ['title', 'alias', 'introtext', 'fulltext',
+					'meta_title', 'meta_description']);
 
 				$category                         = null;
 				$categories_additional_categories = [];
@@ -539,7 +542,6 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 						];
 					}
 				}
-
 
 				if (empty($datum['variants']))
 				{
@@ -629,7 +631,7 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 						$product['id']               = $product_id;
 						$product['meta_variability'] = $meta_id;
 
-						$product['title']  .= ' (' . implode(' | ', $product_subtitle) . ')';
+						$product['title']  .= ' [' . implode(' | ', $product_subtitle) . ']';
 						$product['prices'] = $this->prepareProductPrices($variant['price'], $currencies_rates);
 
 						$product['plugins']['migrator_selector'] = $product_selector;
@@ -670,22 +672,22 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					{
 						$meta['params']['seo_product_description'] = '{meta.introtext}';
 					}
-					if (empty($meta['params']['seo_product_h1']))
-					{
-						$meta['params']['seo_product_h1'] = $meta['params']['seo_product_title'];
-					}
+
 					$meta_seo_fields_string = [];
 					foreach (array_unique($meta_seo_fields) as $meta_seo_field)
 					{
 						$meta_seo_fields_string[] = '{product.fields.' . $meta_seo_field . '.title}: '
 							. '{product.fields.' . $meta_seo_field . '.value}';
 					}
-					$meta_seo_fields_string = '(' . implode(' | ', $meta_seo_fields_string) . ')';
+					$meta_seo_fields_string = ' - ' . implode(', ', $meta_seo_fields_string);
 
-					$meta['params']['seo_product_title']       .= ' ' . $meta_seo_fields_string;
-					$meta['params']['seo_product_description'] .= ' ' . $meta_seo_fields_string;
-					$meta['params']['seo_product_h1']          .= ' ' . $meta_seo_fields_string;
-					$meta['plugins']['migrator_selector']      = $meta_selector;
+					$meta['params']['seo_product_title']       .= $meta_seo_fields_string;
+					$meta['params']['seo_product_description'] .= $meta_seo_fields_string;
+
+					$meta['params']['seo_product_h1']         = $meta['params']['seo_product_title'];
+					$meta['params']['seo_product_breadcrumb'] = $meta['params']['seo_product_title'];
+
+					$meta['plugins']['migrator_selector'] = $meta_selector;
 
 					/** @var MetaModel $model */
 					$model = $this->getComponentModel('com_radicalmart', 'Meta');
