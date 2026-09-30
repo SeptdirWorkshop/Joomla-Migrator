@@ -723,7 +723,7 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					$meta['params']['seo_product_breadcrumbs'] = $meta['params']['seo_product_title'];
 
 					$meta['plugins']['migrator_selector'] = $meta_selector;
-					$save['plugins']['free_attrs']        = $free_attrs;
+					$meta['plugins']['free_attrs']        = $free_attrs;
 
 					if (!empty($meta['plugins']['translation']))
 					{
