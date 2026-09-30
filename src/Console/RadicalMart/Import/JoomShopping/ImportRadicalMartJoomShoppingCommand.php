@@ -118,9 +118,6 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 				'type'      => 'category',
 				'introtext' => $datum['introtext'],
 				'fulltext'  => $datum['fulltext'],
-				'media'     => [
-
-				],
 				'state'     => $datum['state'],
 				'show'      => 1,
 				'params'    => [
@@ -214,9 +211,6 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 				'type'      => 'manufacturer',
 				'introtext' => $datum['introtext'],
 				'fulltext'  => $datum['fulltext'],
-				'media'     => [
-
-				],
 				'state'     => $datum['state'],
 				'show'      => 0,
 				'params'    => [
@@ -464,6 +458,7 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 
 				$category                         = null;
 				$categories_additional_categories = [];
+
 				if (!empty($datum['categories']))
 				{
 					foreach ($datum['categories'] as $catid)
@@ -517,7 +512,6 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					'shipping'                            => [],
 					'fields'                              => [],
 					'state'                               => $datum['state'],
-					'media'                               => [],
 					'params'                              => [
 						'seo_product_title'       => $datum['meta_title'],
 						'seo_product_description' => $datum['meta_description'],
@@ -525,6 +519,16 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					'plugins'                             => [],
 					'language'                            => '*',
 				];
+
+				$free_attrs = false;
+				if (!empty($datum['free_attrs']))
+				{
+					$free_attrs = [];
+					foreach ($datum['free_attrs'] as $attr)
+					{
+						$free_attrs[] = 'free_attr_' . $attr;
+					}
+				}
 
 				if ($multilanguage && !empty($datum['translation']))
 				{
@@ -554,6 +558,7 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 
 					$save['id']                           = $id;
 					$save['plugins']['migrator_selector'] = $selector;
+					$save['plugins']['free_attrs']        = $free_attrs;
 
 					/** @var ProductModel $model */
 					$model = $this->getComponentModel('com_radicalmart', 'Product');
@@ -718,6 +723,7 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					$meta['params']['seo_product_breadcrumbs'] = $meta['params']['seo_product_title'];
 
 					$meta['plugins']['migrator_selector'] = $meta_selector;
+					$save['plugins']['free_attrs']        = $free_attrs;
 
 					if (!empty($meta['plugins']['translation']))
 					{

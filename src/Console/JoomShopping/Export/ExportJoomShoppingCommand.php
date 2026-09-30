@@ -19,6 +19,7 @@ use Joomla\Filesystem\Folder;
 use Joomla\Filesystem\Path;
 use Joomla\Plugin\System\Migrator\Console\AbstractCommand;
 use Joomla\Plugin\System\Migrator\Traits\Commands\ExportTrait;
+use Joomla\Utilities\ArrayHelper;
 
 class ExportJoomShoppingCommand extends AbstractCommand
 {
@@ -440,9 +441,8 @@ class ExportJoomShoppingCommand extends AbstractCommand
 					'meta_title'       => '',
 					'meta_description' => '',
 					'meta_keywords'    => '',
-
-					'variants'    => [],
-					'translation' => [],
+					'variants'         => [],
+					'translation'      => [],
 				];
 				$this->setItemTranslationData($item, $source, $languages, $translation_mapping);
 
@@ -460,7 +460,6 @@ class ExportJoomShoppingCommand extends AbstractCommand
 					->bind(':product_id', $source->product_id, ParameterType::INTEGER)
 					->order('ordering ASC');
 				$item['images'] = $db->setQuery($query)->loadColumn();
-
 
 				$query    = $db->createQuery()
 					->select('*')
@@ -491,6 +490,14 @@ class ExportJoomShoppingCommand extends AbstractCommand
 
 					$item['variants'][$variant['id']] = $variant;
 				}
+
+				$query      = $db->createQuery()
+					->select('attr_id')
+					->from($db->quoteName('#__jshopping_products_free_attr'))
+					->where($db->quoteName('product_id') . ' = :product_id')
+					->bind(':product_id', $source->product_id, ParameterType::INTEGER);
+				$free_attrs = $db->setQuery($query)->loadColumn();
+				$item['free_attrs']= ArrayHelper::toInteger($free_attrs);
 
 				$result[$item['id']] = $item;
 			}
