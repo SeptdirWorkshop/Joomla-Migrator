@@ -126,7 +126,7 @@ class Migrator extends CMSPlugin implements SubscriberInterface
 	 */
 	public function onContentPrepareForm(PrepareFormEvent $event): void
 	{
-		if (!$this->getApplication()->isClient('administrator'))
+		if (!$this->getApplication()->isClient('administrator') && !$this->getApplication()->isClient('api'))
 		{
 			return;
 		}
