@@ -530,11 +530,22 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 					}
 				}
 
+				$translation_titles = false;
 				if ($multilanguage && !empty($datum['translation']))
 				{
 					$save['plugins']['translation'] = [];
 					foreach ($datum['translation'] as $lang => $translation)
 					{
+						if (!empty($translation['title']))
+						{
+							if ($translation_titles === false)
+							{
+								$translation_titles = [];
+							}
+
+							$translation_titles[$lang] = ['title' => $translation['title'], 'sub_title' => []];
+						}
+
 						$save['plugins']['translation'][$lang] = [
 							'title'     => $translation['title'],
 							'introtext' => $translation['introtext'],
@@ -602,7 +613,7 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 							$product_id = 0;
 						}
 
-						$product_subtitle = [];
+						$product_subtitle             = [];
 						foreach ($variant['fields'] as $field_id => $field_value)
 						{
 							if (empty($field_value))
@@ -638,6 +649,41 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 							$product['fields'][$field_find->alias] = $value_rm;
 
 							$product_subtitle[] = $field_find->title . ': ' . $field_find->options[$value_rm];
+							if (!empty($translation_titles) && !empty($field_find->translation))
+							{
+								foreach ($translation_titles as $lang => &$translation_title)
+								{
+									$option_text = $field_find->title . ': ' . $field_find->options[$value_rm];
+									if (empty($field_find->translation[$lang]))
+									{
+										$translation_title['sub_title'][] = $option_text;
+										continue;
+									}
+									$translate = $field_find->translation[$lang];
+									if (empty($translate['title']) && empty($translate['options'][$value_rm]))
+									{
+										$translation_title['sub_title'][] = $option_text;
+										continue;
+									}
+
+									$option_text = $field_find->title . ': ';
+									if (!empty($translate['title']))
+									{
+										$option_text = $translate['title'] . ': ';
+									}
+
+									if (!empty($translate['options'][$value_rm]))
+									{
+										$option_text .= $translate['options'][$value_rm];
+									}
+									else
+									{
+										$option_text .= $field_find->options[$value_rm];
+									}
+
+									$translation_title['sub_title'][] = $option_text;
+								}
+							}
 						}
 
 						$product['id']               = $product_id;
@@ -647,6 +693,18 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 						$product['prices'] = $this->prepareProductPrices($variant['price'], $currencies_rates);
 
 						$product['plugins']['migrator_selector'] = $product_selector;
+
+						if (!empty($translation_titles))
+						{
+							$product['plugins']['translation'] = [];
+							foreach ($translation_titles as $lang => $translation_title)
+							{
+								$product['plugins']['translation'][$lang] = [
+									'title' => $translation_title['title'] . ' ['
+										. implode(' | ', $translation_title['sub_title']) . ']'
+								];
+							}
+						}
 
 						/** @var ProductModel $model */
 						$model = $this->getComponentModel('com_radicalmart', 'Product');
@@ -670,24 +728,23 @@ class ImportRadicalMartJoomShoppingCommand extends AbstractCommand
 						$meta_id = 0;
 					}
 
-
-					if (count($meta_products) > 1 && count($meta_fields) > 1)
-					{
-						foreach ($meta_fields as $mf => $meta_field)
-						{
-							$meta_field['values'] = array_unique($meta_field['values']);
-
-							if (count($meta_field['values']) === 1)
-							{
-								unset($meta_fields[$mf]);
-							}
-
-							if (count($meta_fields) === 1)
-							{
-								break;
-							}
-						}
-					}
+//					if (count($meta_products) > 1 && count($meta_fields) > 1)
+//					{
+//						foreach ($meta_fields as $mf => $meta_field)
+//						{
+//							$meta_field['values'] = array_unique($meta_field['values']);
+//
+//							if (count($meta_field['values']) === 1)
+//							{
+//								unset($meta_fields[$mf]);
+//							}
+//
+//							if (count($meta_fields) === 1)
+//							{
+//								break;
+//							}
+//						}
+//					}
 
 					$meta_fields_ids     = array_keys($meta_fields);
 					$meta_fields_aliases = ArrayHelper::getColumn($meta_fields, 'alias');

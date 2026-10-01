@@ -112,7 +112,7 @@ trait ImportRadicalMartTrait
 
 		$db    = $this->getDatabase();
 		$query = $db->getQuery(true)
-			->select(['id', 'alias', 'title', 'options'])
+			->select(['id', 'alias', 'title', 'options', 'plugins'])
 			->from($db->quoteName('#__radicalmart_fields'))
 			->where('JSON_VALUE(plugins, ' . $db->quote('$."migrator_selector"') . ') = :source_id')
 			->bind(':source_id', $source_id);
@@ -124,9 +124,40 @@ trait ImportRadicalMartTrait
 			return false;
 		}
 
+		$find->translation = [];
+		$plugins           = (new Registry($find->plugins))->toArray();
+		unset($find->plugins);
+		if (!empty($plugins['translation']))
+		{
+			foreach ($plugins['translation'] as $lang => $translation)
+			{
+				$find->translation[$lang] = [
+					'title'   => $translation['title'],
+					'options' => [],
+				];
+			}
+		}
 		$options = [];
 		foreach ((new Registry($find->options))->toArray() as $option)
 		{
+			if (!empty($option['plugins']['translation']))
+			{
+				foreach ($option['plugins']['translation'] as $lang => $translation)
+				{
+					if (empty($translation['text']))
+					{
+						continue;
+					}
+					if (!isset($find->translation[$lang]))
+					{
+						$find->translation[$lang] = [
+							'title'   => '',
+							'options' => [],
+						];
+					}
+					$find->translation[$lang]['options'][$option['value']] = $translation['text'];
+				}
+			}
 			$options[$option['value']] = $option['text'];
 		}
 		$find->options = $options;
