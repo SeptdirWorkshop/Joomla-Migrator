@@ -13,7 +13,7 @@ namespace Joomla\Plugin\System\Migrator\Console\Joomla\Import;
 
 \defined('_JEXEC') or die;
 
-class ImportContentCategories extends ImportJoomlaCommand
+class ImportContentCategoriesCommand extends ImportJoomlaCommand
 {
 	/**
 	 * The default command name

@@ -13,7 +13,7 @@ namespace Joomla\Plugin\System\Migrator\Console\Joomla\Import;
 
 \defined('_JEXEC') or die;
 
-class ImportTags extends ImportJoomlaCommand
+class ImportContentArticlesCommand extends ImportJoomlaCommand
 {
 	/**
 	 * The default command name
@@ -22,7 +22,7 @@ class ImportTags extends ImportJoomlaCommand
 	 *
 	 * @since  __DEPLOY_VERSION__
 	 */
-	protected static $defaultName = 'migrator:import:tags';
+	protected static $defaultName = 'migrator:import:content:articles';
 
 	/**
 	 * Command text title for configure.
@@ -31,7 +31,7 @@ class ImportTags extends ImportJoomlaCommand
 	 *
 	 * @since  __DEPLOY_VERSION__
 	 */
-	protected string $commandText = 'Migrator Import: Tags';
+	protected string $commandText = 'Migrator Import: Content Articles';
 
 	/**
 	 * Command methods for step by step run.
@@ -41,6 +41,6 @@ class ImportTags extends ImportJoomlaCommand
 	 * @since  __DEPLOY_VERSION__
 	 */
 	protected array $methods = [
-		'importTags',
+		'importContentArticles',
 	];
 }
