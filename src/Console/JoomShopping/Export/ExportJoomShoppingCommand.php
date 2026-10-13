@@ -19,6 +19,7 @@ use Joomla\Filesystem\Folder;
 use Joomla\Filesystem\Path;
 use Joomla\Plugin\System\Migrator\Console\AbstractCommand;
 use Joomla\Plugin\System\Migrator\Traits\Commands\ExportTrait;
+use Joomla\Registry\Registry;
 use Joomla\Utilities\ArrayHelper;
 
 class ExportJoomShoppingCommand extends AbstractCommand
@@ -51,11 +52,13 @@ class ExportJoomShoppingCommand extends AbstractCommand
 	 * @since  __DEPLOY_VERSION__
 	 */
 	protected array $methods = [
-		'exportJoomShoppingCategories',
-		'exportJoomShoppingManufacturers',
-		'exportJoomShoppingAttributes',
-		'exportJoomShoppingCurrencies',
-		'exportJoomShoppingProducts',
+//		'exportJoomShoppingCategories',
+//		'exportJoomShoppingManufacturers',
+//		'exportJoomShoppingAttributes',
+//		'exportJoomShoppingCurrencies',
+//		'exportJoomShoppingProducts',
+//		'exportJoomShoppingUsers',
+		'exportJoomShoppingOrders',
 	];
 
 	/**
@@ -491,13 +494,13 @@ class ExportJoomShoppingCommand extends AbstractCommand
 					$item['variants'][$variant['id']] = $variant;
 				}
 
-				$query      = $db->createQuery()
+				$query              = $db->createQuery()
 					->select('attr_id')
 					->from($db->quoteName('#__jshopping_products_free_attr'))
 					->where($db->quoteName('product_id') . ' = :product_id')
 					->bind(':product_id', $source->product_id, ParameterType::INTEGER);
-				$free_attrs = $db->setQuery($query)->loadColumn();
-				$item['free_attrs']= ArrayHelper::toInteger($free_attrs);
+				$free_attrs         = $db->setQuery($query)->loadColumn();
+				$item['free_attrs'] = ArrayHelper::toInteger($free_attrs);
 
 				$result[$item['id']] = $item;
 			}
@@ -506,6 +509,211 @@ class ExportJoomShoppingCommand extends AbstractCommand
 			$this->safeData('com_joomshopping.products.' . $s, $result, $progress);
 
 			$db->disconnect();
+		}
+	}
+
+
+	/**
+	 * Method to export users.
+	 *
+	 * @throws \Throwable
+	 *
+	 * @since __DEPLOY_VERSION__
+	 */
+	public function exportJoomShoppingUsers(): void
+	{
+		$this->ioStyle->title('Migrator Export: JoomShopping Users');
+
+		$folder = Path::clean(JPATH_ROOT . '/administrator/migrator');
+		if (is_dir($folder))
+		{
+			$this->ioStyle->text('Clean files');
+			$this->progressbarStart();
+			$files = Folder::files($folder, 'com_joomshopping.users.');
+			$count = count($files);
+			if ($count > 0)
+			{
+				$this->progressbar->setMaxSteps($count);
+				foreach ($files as $file)
+				{
+					if (!str_starts_with($file, 'com_joomshopping.users.'))
+					{
+						$this->progressbarAdvance();
+						continue;
+					}
+
+					File::delete(Path::clean($folder . '/' . $file));
+					$this->progressbarAdvance();
+				}
+			}
+			$this->progressbarFinish();
+		}
+
+		$this->ioStyle->text('Get total');
+		$this->progressbarStart();
+		$db    = $this->getDonorDatabase();
+		$query = $db->createQuery()
+			->select('COUNT(user_id)')
+			->from($db->quoteName('#__jshopping_users'))
+			->order('user_id asc');
+		$total = $db->setQuery($query)->loadResult();
+		$this->progressbarFinish();
+
+		$last  = 0;
+		$limit = 2500;
+		$steps = ceil($total / $limit);
+		for ($s = 1; $s <= $steps; $s++)
+		{
+			$progress = ' (' . $s . '/' . $steps . ')';
+			$this->ioStyle->text('Get items' . $progress);
+			$this->progressbarStart();
+			$query = $db->createQuery()
+				->select('*')
+				->from($db->quoteName('#__jshopping_users'))
+				->where($db->quoteName('user_id') . ' > :last')
+				->bind(':last', $last, ParameterType::INTEGER)
+				->order('user_id asc');
+			$rows  = $db->setQuery($query, 0, $limit)->loadObjectList();
+			$count = count($rows);
+			$this->progressbarFinish();
+
+			if ($count === 0)
+			{
+				break;
+			}
+
+			$this->ioStyle->text('Prepare data' . $progress);
+			$this->progressbarStart(count($rows));
+			foreach ($rows as $row)
+			{
+				$last               = (int) $row->user_id;
+				$row->pm_debit_plus = (new Registry($row->pm_debit_plus))->toArray();
+				$this->progressbarAdvance();
+			}
+
+			$this->progressbarFinish();
+
+			$this->safeData('com_joomshopping.users.' . $s, $rows, $progress);
+
+			$db->disconnect();
+
+			if ($count < $limit)
+			{
+				break;
+			}
+		}
+	}
+
+	/**
+	 * Method to export users.
+	 *
+	 * @throws \Throwable
+	 *
+	 * @since __DEPLOY_VERSION__
+	 */
+	public function exportJoomShoppingOrders(): void
+	{
+		$this->ioStyle->title('Migrator Export: JoomShopping Orders');
+
+		$folder = Path::clean(JPATH_ROOT . '/administrator/migrator');
+		if (is_dir($folder))
+		{
+			$this->ioStyle->text('Clean files');
+			$this->progressbarStart();
+			$files = Folder::files($folder, 'com_joomshopping.orders.');
+			$count = count($files);
+			if ($count > 0)
+			{
+				$this->progressbar->setMaxSteps($count);
+				foreach ($files as $file)
+				{
+					if (!str_starts_with($file, 'com_joomshopping.orders.'))
+					{
+						$this->progressbarAdvance();
+						continue;
+					}
+
+					File::delete(Path::clean($folder . '/' . $file));
+					$this->progressbarAdvance();
+				}
+			}
+			$this->progressbarFinish();
+		}
+
+		$this->ioStyle->text('Get total');
+		$this->progressbarStart();
+		$db    = $this->getDonorDatabase();
+		$query = $db->createQuery()
+			->select('COUNT(order_id)')
+			->from($db->quoteName('#__jshopping_orders'))
+			->order('order_id asc');
+		$total = $db->setQuery($query)->loadResult();
+		$this->progressbarFinish();
+
+		$last  = 0;
+		$limit = 500;
+		$steps = ceil($total / $limit);
+		for ($s = 1; $s <= $steps; $s++)
+		{
+			$progress = ' (' . $s . '/' . $steps . ')';
+			$this->ioStyle->text('Get items' . $progress);
+			$this->progressbarStart();
+			$query = $db->createQuery()
+				->select('*')
+				->from($db->quoteName('#__jshopping_orders'))
+				->where($db->quoteName('order_id') . ' > :last')
+				->bind(':last', $last, ParameterType::INTEGER)
+				->order('order_id asc');
+			$rows  = $db->setQuery($query, 0, $limit)->loadObjectList();
+			$count = count($rows);
+			$this->progressbarFinish();
+
+			if ($count === 0)
+			{
+				break;
+			}
+
+			$this->ioStyle->text('Prepare data' . $progress);
+			$this->progressbarStart(count($rows));
+			foreach ($rows as $row)
+			{
+				$last = (int) $row->order_id;
+
+				$query       = $db->createQuery()
+					->select('*')
+					->from($db->quoteName('#__jshopping_order_item'))
+					->where($db->quoteName('order_id') . ' = :last')
+					->bind(':last', $last, ParameterType::INTEGER);
+				$order_items = $db->setQuery($query)->loadObjectList();
+				if (count($order_items) === 0)
+				{
+					$this->progressbarAdvance();
+					continue;
+				}
+
+				foreach ($order_items as $order_item)
+				{
+					$order_item->attributes = (!empty($order_item->attributes))
+						? unserialize($order_item->attributes, ['allowed_classes' => false]) : [];
+
+					$order_item->freeattributes = (!empty($order_item->freeattributes))
+						? unserialize($order_item->freeattributes, ['allowed_classes' => false]) : [];
+				}
+
+				$row->items = $order_items;
+
+				$this->progressbarAdvance();
+			}
+
+			$this->progressbarFinish();
+
+			$this->safeData('com_joomshopping.orders.' . $s, $rows, $progress);
+
+			$db->disconnect();
+			if ($count < $limit)
+			{
+				break;
+			}
 		}
 	}
 
