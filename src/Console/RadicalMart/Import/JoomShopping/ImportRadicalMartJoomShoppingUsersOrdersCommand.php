@@ -110,7 +110,7 @@ class ImportRadicalMartJoomShoppingUsersOrdersCommand extends AbstractCommand
 			return;
 		}
 
-		$this->ioStyle->title('Migrator Import: Prepare RadicalMart Customers JoomShopping Users');
+		$this->ioStyle->title('Migrator Import: Prepare RadicalMart Customers from JoomShopping Users');
 
 		$this->ioStyle->text('Get files');
 		$this->progressbarStart();
@@ -163,7 +163,7 @@ class ImportRadicalMartJoomShoppingUsersOrdersCommand extends AbstractCommand
 			$progress = ' (' . $s . '/' . $steps . ')';
 			$file     = str_replace('.json', '', $filename);
 
-			$this->ioStyle->title('Migrator Import: Users ' . $progress);
+			$this->ioStyle->title('Migrator Import: RadicalMart Customers from JoomShopping Users' . $progress);
 			$data = $this->getData($file);
 			if (count($data) === 0)
 			{
@@ -306,7 +306,7 @@ class ImportRadicalMartJoomShoppingUsersOrdersCommand extends AbstractCommand
 			$progress = ' (' . $s . '/' . $steps . ')';
 			$file     = str_replace('.json', '', $filename);
 
-			$this->ioStyle->title('Migrator Import: Orders ' . $progress);
+			$this->ioStyle->title('Migrator Import: RadicalMart Orders from JoomShopping' . $progress);
 			$data = $this->getData($file);
 			if (count($data) === 0)
 			{
