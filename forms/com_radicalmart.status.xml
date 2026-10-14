@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form addfieldprefix="Joomla\Component\RadicalMart\Administrator\Field">
+	<fieldset name="global">
+		<fields name="plugins">
+			<field name="migrator_selector" type="text"
+				   label="PLG_SYSTEM_MIGRATOR_MIGRATOR_SELECTOR"/>
+		</fields>
+	</fieldset>
+</form>

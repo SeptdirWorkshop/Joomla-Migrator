@@ -66,10 +66,12 @@ trait ImportRadicalMartTrait
 		}
 
 		$tables = [
-			'category' => '#__radicalmart_categories',
-			'field'    => '#__radicalmart_fields',
-			'product'  => '#__radicalmart_products',
-			'meta'     => '#__radicalmart_metas',
+			'category'       => '#__radicalmart_categories',
+			'field'          => '#__radicalmart_fields',
+			'product'        => '#__radicalmart_products',
+			'meta'           => '#__radicalmart_metas',
+			'status'         => '#__radicalmart_statuses',
+			'payment_method' => '#__radicalmart_payment_methods',
 		];
 		if (!isset($tables[$type]))
 		{

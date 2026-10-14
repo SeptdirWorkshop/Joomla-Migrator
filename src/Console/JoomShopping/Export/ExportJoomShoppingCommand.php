@@ -52,12 +52,12 @@ class ExportJoomShoppingCommand extends AbstractCommand
 	 * @since  __DEPLOY_VERSION__
 	 */
 	protected array $methods = [
-//		'exportJoomShoppingCategories',
-//		'exportJoomShoppingManufacturers',
-//		'exportJoomShoppingAttributes',
-//		'exportJoomShoppingCurrencies',
-//		'exportJoomShoppingProducts',
-//		'exportJoomShoppingUsers',
+		'exportJoomShoppingCategories',
+		'exportJoomShoppingManufacturers',
+		'exportJoomShoppingAttributes',
+		'exportJoomShoppingCurrencies',
+		'exportJoomShoppingProducts',
+		'exportJoomShoppingUsers',
 		'exportJoomShoppingOrders',
 	];
 
@@ -512,7 +512,6 @@ class ExportJoomShoppingCommand extends AbstractCommand
 		}
 	}
 
-
 	/**
 	 * Method to export users.
 	 *
@@ -675,26 +674,70 @@ class ExportJoomShoppingCommand extends AbstractCommand
 
 			$this->ioStyle->text('Prepare data' . $progress);
 			$this->progressbarStart(count($rows));
-			foreach ($rows as $row)
+			foreach ($rows as $r => $row)
 			{
-				$last = (int) $row->order_id;
-
-				$query       = $db->createQuery()
+				$last         = (int) $row->order_id;
+				$row->problem = false;
+				$query        = $db->createQuery()
 					->select('*')
 					->from($db->quoteName('#__jshopping_order_item'))
+					->where($db->quoteName('product_id') . ' > 0')
 					->where($db->quoteName('order_id') . ' = :last')
 					->bind(':last', $last, ParameterType::INTEGER);
-				$order_items = $db->setQuery($query)->loadObjectList();
+				$order_items  = $db->setQuery($query)->loadObjectList();
 				if (count($order_items) === 0)
 				{
+					$row->problem = true;
 					$this->progressbarAdvance();
 					continue;
 				}
 
 				foreach ($order_items as $order_item)
 				{
+					if (empty($order_item->product_id))
+					{
+						$row->problem = true;
+						continue;
+					}
+
+					$query                  = $db->createQuery()
+						->select('product_id')
+						->from($db->quoteName('#__jshopping_products'))
+						->where($db->quoteName('product_id') . ' = :product_id')
+						->bind(':product_id', $order_item->product_id, ParameterType::INTEGER);
+					$product_id             = $db->setQuery($query, 0, 1)->loadResult();
+					$order_item->product_id = (!empty($product_id)) ? (int) $product_id : 0;
+					if (empty($order_item->product_id))
+					{
+						$row->problem = true;
+					}
+
 					$order_item->attributes = (!empty($order_item->attributes))
 						? unserialize($order_item->attributes, ['allowed_classes' => false]) : [];
+					$order_item->variant_id = null;
+					if (!empty($order_item->product_id) && count($order_item->attributes) > 0)
+					{
+						$query = $db->createQuery()
+							->select('product_attr_id')
+							->from($db->quoteName('#__jshopping_products_attr'))
+							->where($db->quoteName('product_id') . ' = :product_id')
+							->bind(':product_id', $order_item->product_id, ParameterType::INTEGER);
+
+						foreach ($order_item->attributes as $attr_id => $attr_value)
+						{
+							$query->where($db->quoteName('attr_' . $attr_id) . ' = ' . $db->quote($attr_value));
+						}
+						$product_attr_id             = $db->setQuery($query, 0, 1)->loadResult();
+						$order_item->product_attr_id = (!empty($product_attr_id)) ? $product_attr_id : 0;
+						if (empty($order_item->product_attr_id))
+						{
+							$row->problem = true;
+						}
+						else
+						{
+							$order_item->variant_id = $order_item->product_id . '_' . $order_item->product_attr_id;
+						}
+					}
 
 					$order_item->freeattributes = (!empty($order_item->freeattributes))
 						? unserialize($order_item->freeattributes, ['allowed_classes' => false]) : [];
