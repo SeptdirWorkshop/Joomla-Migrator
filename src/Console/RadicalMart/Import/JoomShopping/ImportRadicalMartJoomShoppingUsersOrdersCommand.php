@@ -44,7 +44,7 @@ class ImportRadicalMartJoomShoppingUsersOrdersCommand extends AbstractCommand
 	 *
 	 * @since  __DEPLOY_VERSION__
 	 */
-	protected static $defaultName = 'migrator:import:joomshopping_users_orders';
+	protected static $defaultName = 'migrator:import:radicalmart:joomshopping_users_orders';
 
 	/**
 	 * Command text title for configure.
@@ -428,11 +428,13 @@ class ImportRadicalMartJoomShoppingUsersOrdersCommand extends AbstractCommand
 				$insert->payment  = (new Registry($save['payment']))->toString();
 
 				$db->insertObject('#__radicalmart_orders', $insert);
+				$db->disconnect();
+				$this->cleanRadicalMartRAM();
 				$this->progressbarAdvance();
 			}
 
 			$this->progressbarFinish();
-			$this->cleanRadicalMartRAM();
+
 
 			$db->disconnect();
 		}

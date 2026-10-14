@@ -650,7 +650,7 @@ class ExportJoomShoppingCommand extends AbstractCommand
 		$this->progressbarFinish();
 
 		$last  = 0;
-		$limit = 500;
+		$limit = 100;
 		$steps = ceil($total / $limit);
 		for ($s = 1; $s <= $steps; $s++)
 		{
