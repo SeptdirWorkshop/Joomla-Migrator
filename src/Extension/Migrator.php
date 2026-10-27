@@ -25,6 +25,7 @@ use Joomla\Event\SubscriberInterface;
 use Joomla\Filesystem\File;
 use Joomla\Filesystem\Folder;
 use Joomla\Filesystem\Path;
+use Joomla\Plugin\System\Migrator\Console\CleanCommand;
 
 class Migrator extends CMSPlugin implements SubscriberInterface
 {
@@ -70,7 +71,9 @@ class Migrator extends CMSPlugin implements SubscriberInterface
 		$app = Factory::getApplication();
 
 		// Load from files
-		$commands = [];
+		$commands = [
+			CleanCommand::class
+		];
 		$root     = Path::clean(JPATH_PLUGINS . '/system/migrator/src/Console');
 		$files    = Folder::files($root, '.php', true, true);
 		foreach ($files as $file)

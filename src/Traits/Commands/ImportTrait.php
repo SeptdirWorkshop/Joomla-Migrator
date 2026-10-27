@@ -29,9 +29,9 @@ trait ImportTrait
 	 *
 	 * @since __DEPLOY_VERSION__
 	 */
-	protected function getData(string $file): array
+	protected function getData(string $file, string $progress = ''): array
 	{
-		$this->ioStyle->text('Get data from: ' . $file);
+		$this->ioStyle->text('Get data from: ' . $file . $progress);
 		$this->progressbarStart();
 		$path = Path::clean(JPATH_ROOT . '/administrator/migrator/' . $file . '.json');
 		if (!is_file($path))

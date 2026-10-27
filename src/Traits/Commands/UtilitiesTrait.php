@@ -206,4 +206,23 @@ trait UtilitiesTrait
 
 		$this->ioStyle->newLine(2);
 	}
+
+
+	/**
+	 * Advance progress bar.
+	 *
+	 * @param   int  $steps  Max steps count
+	 *
+	 * @since  __DEPLOY_VERSION__
+	 */
+	protected function progressbarMaxSteps(int $steps = 1): void
+	{
+		if ($this->progressbar === null)
+		{
+			return;
+		}
+
+		$this->progressbar->setMaxSteps($steps);
+		$this->progressbar->display();
+	}
 }
